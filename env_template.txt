@@ -1,0 +1,250 @@
+# Advanced Medical Imaging Diagnosis Agent - Environment Variables Template
+# Copy this file to .env and fill in your actual values
+
+# =============================================================================
+# API Keys and External Services
+# =============================================================================
+
+# OpenAI API Key (Required for AI diagnosis)
+OPENAI_API_KEY=your_openai_api_key_here
+
+# PubMed API Key (Optional, for medical literature search)
+PUBMED_API_KEY=your_pubmed_api_key_here
+
+# =============================================================================
+# Database Configuration
+# =============================================================================
+
+# Database URL (PostgreSQL recommended for production)
+DATABASE_URL=postgresql://medical_user:medical_password@database:5432/medical_imaging
+
+# Database credentials (if using PostgreSQL)
+DB_USER=medical_user
+DB_PASSWORD=medical_password
+
+# =============================================================================
+# Redis Configuration
+# =============================================================================
+
+# Redis connection URL
+REDIS_URL=redis://redis:6379
+
+# =============================================================================
+# Application Settings
+# =============================================================================
+
+# Application environment
+ENVIRONMENT=production
+
+# Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+LOG_LEVEL=INFO
+
+# Secret key for JWT tokens and encryption
+SECRET_KEY=your_secret_key_here_generate_a_secure_random_key
+
+# =============================================================================
+# Model and AI Configuration
+# =============================================================================
+
+# Model device (cpu, cuda, mps)
+MODEL_DEVICE=cpu
+
+# Heatmap alpha for XAI visualization
+HEATMAP_ALPHA=0.6
+
+# Grad-CAM layer for explainability
+GRAD_CAM_LAYER=layer4
+
+# =============================================================================
+# Image Processing Settings
+# =============================================================================
+
+# Maximum image size for processing (MB)
+MAX_IMAGE_SIZE=100
+
+# Supported image formats
+SUPPORTED_FORMATS=.dcm,.nii,.nii.gz,.jpg,.jpeg,.png,.tiff,.bmp
+
+# Image processing quality (1-100)
+IMAGE_QUALITY=90
+
+# =============================================================================
+# Streamlit Configuration
+# =============================================================================
+
+# Streamlit server address
+STREAMLIT_SERVER_ADDRESS=0.0.0.0
+
+# Streamlit server port
+STREAMLIT_SERVER_PORT=8501
+
+# Streamlit server headless mode
+STREAMLIT_SERVER_HEADLESS=true
+
+# =============================================================================
+# FastAPI Configuration
+# =============================================================================
+
+# FastAPI server host
+API_SERVER_HOST=0.0.0.0
+
+# FastAPI server port
+API_SERVER_PORT=8000
+
+# FastAPI workers
+API_WORKERS=4
+
+# =============================================================================
+# Monitoring and Metrics
+# =============================================================================
+
+# Enable Prometheus metrics
+ENABLE_METRICS=true
+
+# Metrics port
+METRICS_PORT=8000
+
+# Grafana admin password
+GRAFANA_PASSWORD=admin
+
+# =============================================================================
+# Security Settings
+# =============================================================================
+
+# CORS origins (comma-separated)
+CORS_ORIGINS=http://localhost:8501,http://localhost:3000
+
+# JWT token expiration (hours)
+JWT_EXPIRATION_HOURS=24
+
+# Password hashing rounds
+PASSWORD_HASH_ROUNDS=12
+
+# =============================================================================
+# File Storage
+# =============================================================================
+
+# Upload directory
+UPLOAD_DIR=./uploads
+
+# Models directory
+MODELS_DIR=./models
+
+# Reports directory
+REPORTS_DIR=./reports
+
+# Cache directory
+CACHE_DIR=./cache
+
+# Logs directory
+LOGS_DIR=./logs
+
+# =============================================================================
+# Training Configuration
+# =============================================================================
+
+# Training data directory
+TRAINING_DATA_DIR=./training_data
+
+# Model checkpoint directory
+CHECKPOINT_DIR=./models/checkpoints
+
+# Training batch size
+TRAINING_BATCH_SIZE=32
+
+# Training learning rate
+TRAINING_LEARNING_RATE=0.001
+
+# Training epochs
+TRAINING_EPOCHS=100
+
+# =============================================================================
+# Backup and Maintenance
+# =============================================================================
+
+# Enable automatic backups
+ENABLE_BACKUPS=true
+
+# Backup retention days
+BACKUP_RETENTION_DAYS=30
+
+# Backup schedule (cron format)
+BACKUP_SCHEDULE=0 2 * * *
+
+# =============================================================================
+# Development Settings (set to false in production)
+# =============================================================================
+
+# Enable debug mode
+DEBUG=false
+
+# Enable auto-reload
+AUTO_RELOAD=false
+
+# Enable development tools
+ENABLE_DEV_TOOLS=false
+
+# =============================================================================
+# Performance Tuning
+# =============================================================================
+
+# Database connection pool size
+DB_POOL_SIZE=10
+
+# Redis connection pool size
+REDIS_POOL_SIZE=20
+
+# Worker processes
+WORKER_PROCESSES=4
+
+# Request timeout (seconds)
+REQUEST_TIMEOUT=30
+
+# =============================================================================
+# External Integrations
+# =============================================================================
+
+# PACS server URL (if integrating with PACS)
+PACS_URL=
+
+# PACS username
+PACS_USERNAME=
+
+# PACS password
+PACS_PASSWORD=
+
+# Email server settings (for notifications)
+SMTP_SERVER=
+SMTP_PORT=587
+SMTP_USERNAME=
+SMTP_PASSWORD=
+SMTP_USE_TLS=true
+
+# =============================================================================
+# Advanced Settings
+# =============================================================================
+
+# Enable GPU acceleration
+ENABLE_GPU=false
+
+# GPU memory fraction
+GPU_MEMORY_FRACTION=0.8
+
+# Enable distributed training
+ENABLE_DISTRIBUTED_TRAINING=false
+
+# Model serving port
+MODEL_SERVING_PORT=8502
+
+# =============================================================================
+# Notes
+# =============================================================================
+# 
+# 1. Replace all 'your_*_here' values with actual credentials
+# 2. Generate a secure SECRET_KEY using: python -c "import secrets; print(secrets.token_urlsafe(32))"
+# 3. Set appropriate file permissions for .env file (600 recommended)
+# 4. Never commit .env file to version control
+# 5. Use strong passwords for database and external services
+# 6. Consider using a secrets management service in production
+# 7. Regularly rotate API keys and passwords
+# 8. Monitor logs for security-related events

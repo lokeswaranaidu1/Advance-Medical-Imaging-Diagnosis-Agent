@@ -1,0 +1,250 @@
+version: '3.8'
+
+services:
+  # FastAPI Backend Service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: medical-imaging-api
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PUBMED_API_KEY=${PUBMED_API_KEY}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./medical_imaging.db}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - LOG_LEVEL=INFO
+      - ENVIRONMENT=production
+    volumes:
+      - ./uploads:/app/uploads
+      - ./models:/app/models
+      - ./reports:/app/reports
+      - ./cache:/app/cache
+      - ./logs:/app/logs
+    depends_on:
+      - redis
+      - database
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - medical-network
+
+  # Streamlit Frontend Service
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: medical-imaging-streamlit
+    ports:
+      - "8501:8501"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - API_BASE_URL=http://api:8000
+      - LOG_LEVEL=INFO
+      - ENVIRONMENT=production
+    volumes:
+      - ./uploads:/app/uploads
+      - ./models:/app/models
+      - ./reports:/app/reports
+      - ./cache:/app/cache
+      - ./logs:/app/logs
+    depends_on:
+      - api
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - medical-network
+
+  # Redis Cache Service
+  redis:
+    image: redis:7-alpine
+    container_name: medical-imaging-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - medical-network
+
+  # PostgreSQL Database Service
+  database:
+    image: postgres:15-alpine
+    container_name: medical-imaging-db
+    environment:
+      - POSTGRES_DB=medical_imaging
+      - POSTGRES_USER=${DB_USER:-medical_user}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-medical_password}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-medical_user} -d medical_imaging"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - medical-network
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: medical-imaging-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - api
+      - streamlit
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - medical-network
+
+  # Monitoring Service (Prometheus)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: medical-imaging-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - medical-network
+
+  # Monitoring Service (Grafana)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: medical-imaging-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - medical-network
+
+  # Model Training Service
+  training:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: medical-imaging-training
+    environment:
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://medical_user:medical_password@database:5432/medical_imaging}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - LOG_LEVEL=INFO
+      - ENVIRONMENT=training
+    volumes:
+      - ./models:/app/models
+      - ./training_data:/app/training_data
+      - ./logs:/app/logs
+      - ./cache:/app/cache
+    depends_on:
+      - database
+      - redis
+    restart: "no"
+    networks:
+      - medical-network
+    profiles:
+      - training
+
+  # Background Worker Service
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: medical-imaging-worker
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://medical_user:medical_password@database:5432/medical_imaging}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - LOG_LEVEL=INFO
+      - ENVIRONMENT=production
+    volumes:
+      - ./uploads:/app/uploads
+      - ./models:/app/models
+      - ./reports:/app/reports
+      - ./cache:/app/cache
+      - ./logs:/app/logs
+    depends_on:
+      - database
+      - redis
+    restart: unless-stopped
+    networks:
+      - medical-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  medical-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# Health check for the entire stack
+x-healthcheck:
+  test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+  interval: 60s
+  timeout: 10s
+  retries: 3
+  start_period: 60s
